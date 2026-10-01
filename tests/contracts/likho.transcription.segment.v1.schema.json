@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://likho-ai.github.io/likho-contracts/events/likho.transcription.segment.v1.schema.json",
+  "title": "One line was written; sent to the browser while the job runs",
+  "description": "data of likho.transcription.segment.v1; published by likho-transcription on NATS subject likho.live.segment",
+  "type": "object",
+  "required": [
+    "job_id",
+    "recording_id",
+    "total_seconds",
+    "segment"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "pattern": "^job_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "recording_id": {
+      "type": "string",
+      "pattern": "^rec_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "total_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Audio length, for the progress bar"
+    },
+    "segment": {
+      "type": "object",
+      "required": [
+        "index",
+        "start_seconds",
+        "end_seconds",
+        "text_script",
+        "text_roman"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "end_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "text_script": {
+          "type": "string",
+          "description": "Layer 1"
+        },
+        "text_roman": {
+          "type": "string",
+          "description": "Layer 2"
+        }
+      }
+    }
+  }
+}

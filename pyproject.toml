@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "likho-transcription"
+version = "0.1.0"
+description = "Likho transcription: the speech engine (recordings in, Devanagari and Hinglish out) and the service around it"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # engine
+    "faster-whisper>=1.2.1",
+    # faster-whisper 1.2.1 calls av.open(metadata_errors=...), which PyAV 19 removed.
+    "av>=11,<19",
+    "tqdm>=4.66",
+    "likho-hinglish",
+    # service
+    "likho-contracts",
+    "grpcio>=1.70",
+    "grpcio-health-checking>=1.70",
+    "nats-py>=2.9",
+    "pymongo>=4.10",
+    "httpx>=0.27",
+    "pydantic-settings>=2.6",
+]
+
+[project.scripts]
+likho-transcribe = "likho_engine.cli:main"
+likho-transcription = "likho_transcription.__main__:main"
+
+[tool.uv.sources]
+likho-contracts = { git = "https://github.com/likho-ai/likho-contracts", tag = "v0.2.0", subdirectory = "packages/python" }
+likho-hinglish = { git = "https://github.com/likho-ai/likho-language", tag = "v0.1.0", subdirectory = "packages/likho-hinglish" }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "jsonschema>=4.23",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/likho_engine", "src/likho_transcription"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "N", "RUF", "ASYNC"]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # Devanagari strings are intentional, not "ambiguous" characters
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/likho_transcription/grpc_server.py" = ["N802"]  # gRPC method names are CamelCase by contract
+"tests/*" = ["N802"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+check_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+# faster_whisper and ctranslate2 ship no type stubs; likho.* is the generated contracts package.
+module = ["faster_whisper.*", "ctranslate2.*", "tqdm.*", "grpc.*", "grpc_health.*", "nats.*", "likho.*", "google.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+addopts = "-q"
+markers = ["integration: needs MongoDB and NATS from likho-infra (bash scripts/up.sh)"]

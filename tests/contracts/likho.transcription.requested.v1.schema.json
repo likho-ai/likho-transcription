@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://likho-ai.github.io/likho-contracts/events/likho.transcription.requested.v1.schema.json",
+  "title": "A transcription job was queued; exactly one worker takes it",
+  "description": "data of likho.transcription.requested.v1; published by likho-api on NATS subject likho.transcription.requested",
+  "type": "object",
+  "required": [
+    "job_id",
+    "recording_id",
+    "media_id",
+    "workspace_id",
+    "language_policy",
+    "force"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "pattern": "^job_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "recording_id": {
+      "type": "string",
+      "pattern": "^rec_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "media_id": {
+      "type": "string",
+      "pattern": "^med_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^wsp_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "model_registry_id": {
+      "type": "string",
+      "description": "Empty means the default model"
+    },
+    "language_policy": {
+      "type": "string",
+      "description": "\"auto\" or a language code to force"
+    },
+    "force": {
+      "type": "boolean",
+      "description": "Transcribe again even if a transcript exists"
+    }
+  }
+}

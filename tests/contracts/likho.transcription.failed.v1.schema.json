@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://likho-ai.github.io/likho-contracts/events/likho.transcription.failed.v1.schema.json",
+  "title": "The job gave up after its last attempt",
+  "description": "data of likho.transcription.failed.v1; published by likho-transcription on NATS subject likho.transcription.failed",
+  "type": "object",
+  "required": [
+    "job_id",
+    "recording_id",
+    "workspace_id",
+    "code",
+    "message",
+    "attempt"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "pattern": "^job_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "recording_id": {
+      "type": "string",
+      "pattern": "^rec_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^wsp_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "code": {
+      "enum": [
+        "audio_unreadable",
+        "model_unavailable",
+        "cancelled",
+        "internal"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "What happened, in plain words, for the Jobs page"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

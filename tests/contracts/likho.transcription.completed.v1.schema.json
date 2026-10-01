@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://likho-ai.github.io/likho-contracts/events/likho.transcription.completed.v1.schema.json",
+  "title": "The transcript is stored with both layers",
+  "description": "data of likho.transcription.completed.v1; published by likho-transcription on NATS subject likho.transcription.completed",
+  "type": "object",
+  "required": [
+    "job_id",
+    "recording_id",
+    "transcript_id",
+    "workspace_id",
+    "version",
+    "language",
+    "stats"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "pattern": "^job_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "recording_id": {
+      "type": "string",
+      "pattern": "^rec_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "transcript_id": {
+      "type": "string",
+      "pattern": "^trn_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^wsp_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "language": {
+      "type": "object",
+      "required": [
+        "detected",
+        "probability",
+        "decoded_as",
+        "policy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "detected": {
+          "type": "string",
+          "description": "ISO 639-1 code"
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "language",
+              "probability"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "language": {
+                "type": "string"
+              },
+              "probability": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        },
+        "decoded_as": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string",
+          "description": "\"auto\" or a forced language code"
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": [
+        "audio_seconds",
+        "elapsed_seconds",
+        "segments"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "audio_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "elapsed_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "segments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chunks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "silence_skipped_seconds": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "specversion": "1.0",
+  "id": "evt_01JB7Z5K3M9Q2W4X6Y8A0C1E03",
+  "source": "likho-api",
+  "type": "likho.transcription.requested.v1",
+  "time": "2026-10-01T07:00:00Z",
+  "subject": "rec_01JB7Z5K3M9Q2W4X6Y8A0C1E3G",
+  "datacontenttype": "application/json",
+  "data": {
+    "job_id": "job_01JB7Z5K3M9Q2W4X6Y8A0C1E3G",
+    "recording_id": "rec_01JB7Z5K3M9Q2W4X6Y8A0C1E3G",
+    "media_id": "med_01JB7Z5K3M9Q2W4X6Y8A0C1E3G",
+    "workspace_id": "wsp_01JB7Z5K3M9Q2W4X6Y8A0C1E3G",
+    "model_registry_id": "faster-whisper/turbo",
+    "language_policy": "auto",
+    "force": false
+  }
+}

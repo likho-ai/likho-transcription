@@ -109,7 +109,9 @@ class MediaGateway:
 
     async def download(self, media_id: str, directory: Path) -> Path:
         """Save the audio in directory and return its path."""
-        request = media_pb2.GetDownloadUrlRequest(id=media_id, kind=media_pb2.MEDIA_KIND_NORMALIZED)
+        # The file exactly as it was uploaded. A converted copy is not the same audio to the model:
+        # on real calls it changed about one word in seven.
+        request = media_pb2.GetDownloadUrlRequest(id=media_id, kind=media_pb2.MEDIA_KIND_ORIGINAL)
         try:
             reply = await self._stub.GetDownloadUrl(request, timeout=self._rpc_timeout)
         except grpc.aio.AioRpcError as error:

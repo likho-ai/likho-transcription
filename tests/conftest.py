@@ -102,6 +102,8 @@ class FakeMedia(media_pb2_grpc.MediaServiceServicer):
             await context.abort(grpc.StatusCode.UNAVAILABLE, "media service is restarting")
         if request.id not in self.files:
             await context.abort(grpc.StatusCode.NOT_FOUND, f"media {request.id} not found")
+        if request.kind != media_pb2.MEDIA_KIND_ORIGINAL:
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "the model must read the file as it was uploaded")
         return media_pb2.GetDownloadUrlResponse(url=f"{self.base_url}/{self.files[request.id]}")
 
 

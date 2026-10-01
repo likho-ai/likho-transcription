@@ -17,7 +17,8 @@ The repository holds two packages:
 
 ## How a recording becomes a transcript
 
-1. **Load.** Any format FFmpeg reads is converted to 16 kHz mono.
+1. **Load.** The file is read exactly as it was uploaded; any format FFmpeg reads works. It is
+   converted to 16 kHz mono in memory.
 2. **Find the speech.** A voice detector marks where people talk. Silences of 3 seconds or more
    are skipped; shorter pauses are kept.
 3. **Cut in pauses.** Speech is cut into chunks of at most 12 seconds, always inside a pause, so
@@ -104,8 +105,8 @@ A job is a `likho.transcription.requested.v1` event on the subject `likho.transc
 }
 ```
 
-The service asks [likho-media](https://github.com/likho-ai) for a download link, transcribes, and
-publishes:
+The service asks [likho-media](https://github.com/likho-ai/likho-media) for a link to the file as it
+was uploaded, transcribes it, and publishes:
 
 | Subject | When |
 | --- | --- |

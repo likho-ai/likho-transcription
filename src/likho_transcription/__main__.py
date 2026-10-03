@@ -68,7 +68,7 @@ async def serve(
 
     server = grpc.aio.server()
     transcription_pb2_grpc.add_TranscriptionServiceServicer_to_server(
-        TranscriptionServicer(store, runner, engines, language), server
+        TranscriptionServicer(store, runner, engines, language, bus), server
     )
     health_servicer = health.aio.HealthServicer()
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)

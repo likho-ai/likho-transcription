@@ -25,6 +25,7 @@ SEGMENT_SUBJECT = "likho.live.segment"
 COMPLETED_SUBJECT = "likho.transcription.completed"
 FAILED_SUBJECT = "likho.transcription.failed"
 DEAD_SUBJECT = "likho.dead"
+CORRECTED_SUBJECT = "likho.transcript.corrected"
 JOB_STREAM = "LIKHO"
 
 Event = dict[str, Any]
@@ -83,6 +84,25 @@ def completed_event(job: JobRequest, document: dict[str, Any]) -> Event:
                 "chunks": stats["chunks"],
                 "silence_skipped_seconds": stats["silence_skipped_seconds"],
             },
+        },
+    )
+
+
+def corrected_event(correction: dict[str, Any], workspace_id: str) -> Event:
+    """likho.transcript.corrected.v1: one line a person changed; the corrected version is what to index."""
+    return _envelope(
+        "evt_" + correction["_id"][4:],
+        "likho.transcript.corrected.v1",
+        correction["corrected_transcript_id"],
+        {
+            "transcript_id": correction["corrected_transcript_id"],
+            "recording_id": correction["recording_id"],
+            "workspace_id": workspace_id,
+            "user_id": correction["user_id"],
+            "segment_index": correction["segment_index"],
+            "layer": correction["layer"],
+            "before": correction["before"],
+            "after": correction["after"],
         },
     )
 

@@ -193,6 +193,87 @@ async def test_retransliterate_rebuilds_hinglish_without_running_the_model(fresh
     assert stored is not None and stored["vocabulary_version"] == 4
 
 
+async def test_a_correction_makes_the_next_version_and_is_announced(fresh: Platform) -> None:
+    ids = await fresh.request()
+    completed = next(e for s, e in await fresh.events(ids["job_id"], until=COMPLETED) if s == COMPLETED)
+    first = completed["data"]["transcript_id"]
+
+    # The Hinglish of a line, as a person wrote it: it stands as written.
+    reply = await fresh.stub.CorrectSegment(
+        pb.CorrectSegmentRequest(
+            transcript_id=first,
+            segment_index=1,
+            layer=pb.LAYER_ROMAN,
+            text="dawai din mein do baar lijiye",
+            user_id="usr_01JB7Z5K3M9Q2W4X6Y8A0C1E3G",
+            workspace_id=ids["workspace_id"],
+        )
+    )
+    assert (reply.transcript.version, reply.transcript.job_id) == (2, "")
+    assert reply.transcript.segments[1].text_roman == "dawai din mein do baar lijiye"
+    assert reply.transcript.segments[1].text_script == SCRIPT[1]  # the other layer is untouched
+    assert reply.transcript.segments[0].text_roman == HINGLISH[0]
+    assert (reply.correction.layer, reply.correction.before, reply.correction.after) == (
+        pb.LAYER_ROMAN,
+        HINGLISH[1],
+        "dawai din mein do baar lijiye",
+    )
+    assert reply.correction.corrected_transcript_id == reply.transcript.id
+
+    # The script layer corrected: the Hinglish of that line is derived again (through the language service).
+    fresh.language.spellings = {"गोली": "tablet"}
+    second = await fresh.stub.CorrectSegment(
+        pb.CorrectSegmentRequest(
+            transcript_id=reply.transcript.id,
+            segment_index=0,
+            layer=pb.LAYER_SCRIPT,
+            text="गोली सुबह लीजिए",
+            user_id="usr_01JB7Z5K3M9Q2W4X6Y8A0C1E3G",
+            workspace_id=ids["workspace_id"],
+        )
+    )
+    assert second.transcript.version == 3
+    assert second.transcript.segments[0].text_script == "गोली सुबह लीजिए"
+    assert second.transcript.segments[0].text_roman == "tablet subah lijiye"
+    assert second.transcript.segments[1].text_roman == "dawai din mein do baar lijiye"  # the earlier correction stays
+
+    # Both corrections are kept, newest first, and were announced in the shape of the contract.
+    listed = (await fresh.stub.ListCorrections(pb.ListCorrectionsRequest(recording_id=ids["recording_id"]))).corrections
+    assert [c.segment_index for c in listed] == [0, 1]
+    await fresh._read(wait=0.5)
+    announced = [
+        e
+        for s, e, _ in fresh.seen
+        if s == "likho.transcript.corrected" and e["data"]["recording_id"] == ids["recording_id"]
+    ]
+    assert len(announced) == 2
+    assert announced[-1]["data"] == {
+        "transcript_id": second.transcript.id,
+        "recording_id": ids["recording_id"],
+        "workspace_id": ids["workspace_id"],
+        "user_id": "usr_01JB7Z5K3M9Q2W4X6Y8A0C1E3G",
+        "segment_index": 0,
+        "layer": "script",
+        "before": SCRIPT[0],
+        "after": "गोली सुबह लीजिए",
+    }
+    valid(announced[-1], "likho.transcript.corrected.v1.schema.json")
+
+    # Refusals: an older version, a line that is not there, the same text.
+    with pytest.raises(grpc.aio.AioRpcError) as refused:
+        await fresh.stub.CorrectSegment(
+            pb.CorrectSegmentRequest(transcript_id=first, segment_index=0, layer=pb.LAYER_ROMAN, text="x", user_id="u")
+        )
+    assert refused.value.code() == grpc.StatusCode.FAILED_PRECONDITION
+    with pytest.raises(grpc.aio.AioRpcError) as missing:
+        await fresh.stub.CorrectSegment(
+            pb.CorrectSegmentRequest(
+                transcript_id=second.transcript.id, segment_index=9, layer=pb.LAYER_ROMAN, text="x", user_id="u"
+            )
+        )
+    assert missing.value.code() == grpc.StatusCode.NOT_FOUND
+
+
 async def test_transcribe_streams_started_lines_and_the_result(fresh: Platform) -> None:
     request = pb.TranscribeRequest(
         recording_id="rec_direct", media_id="med_good", workspace_id="wsp_1", language_policy="auto"

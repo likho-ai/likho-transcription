@@ -39,6 +39,7 @@ WATCHED = (
     "likho.live.segment",
     "likho.transcription.completed",
     "likho.transcription.failed",
+    "likho.transcript.corrected",
     "likho.dead",
 )
 

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://likho-ai.github.io/likho-contracts/events/likho.transcript.corrected.v1.schema.json",
+  "title": "A person corrected one line; kept forever as a training example",
+  "description": "data of likho.transcript.corrected.v1; published by likho-api on NATS subject likho.transcript.corrected",
+  "type": "object",
+  "required": [
+    "transcript_id",
+    "recording_id",
+    "workspace_id",
+    "user_id",
+    "segment_index",
+    "layer",
+    "before",
+    "after"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "transcript_id": {
+      "type": "string",
+      "pattern": "^trn_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "recording_id": {
+      "type": "string",
+      "pattern": "^rec_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^wsp_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "user_id": {
+      "type": "string",
+      "pattern": "^usr_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "segment_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "layer": {
+      "enum": [
+        "script",
+        "roman"
+      ]
+    },
+    "before": {
+      "type": "string"
+    },
+    "after": {
+      "type": "string"
+    }
+  }
+}

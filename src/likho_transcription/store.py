@@ -15,6 +15,7 @@ class TranscriptStore:
     def __init__(self, url: str, database: str) -> None:
         self._client: AsyncMongoClient[Document] = AsyncMongoClient(url, tz_aware=True, serverSelectionTimeoutMS=5000)
         self._transcripts = self._client[database]["transcripts"]
+        self._corrections = self._client[database]["corrections"]
 
     async def prepare(self) -> None:
         """Create the indexes. Fails when the database is not reachable."""
@@ -23,6 +24,8 @@ class TranscriptStore:
         await self._transcripts.create_index(
             "job_id", unique=True, partialFilterExpression={"job_id": {"$gt": ""}}, name="job_id_unique"
         )
+        await self._corrections.create_index([("recording_id", ASCENDING), ("created_at", DESCENDING)])
+        await self._corrections.create_index("user_id")
 
     async def ping(self) -> bool:
         await self._client.admin.command("ping")
@@ -65,4 +68,16 @@ class TranscriptStore:
 
     async def delete_recording(self, recording_id: str) -> int:
         result = await self._transcripts.delete_many({"recording_id": recording_id})
+        await self._corrections.delete_many({"recording_id": recording_id})
         return result.deleted_count
+
+    async def add_correction(self, correction: Document) -> Document:
+        """Keep one change a person made (training data, never expired)."""
+        correction = {**correction, "_id": new_id("cor"), "created_at": datetime.now(UTC)}
+        await self._corrections.insert_one(correction)
+        return correction
+
+    async def corrections_for_recording(self, recording_id: str) -> list[Document]:
+        """Every correction of a recording, newest first."""
+        cursor = self._corrections.find({"recording_id": recording_id}).sort("created_at", DESCENDING)
+        return await cursor.to_list()

@@ -180,7 +180,18 @@ A version is never changed. A correction or a re-transliteration is a new versio
 
 ## Configuration
 
-Environment variables, or a `.env` file (see `.env.example`).
+Settings come from environment variables and from `.env` files chosen by `LIKHO_ENV`
+(`development` by default). The files are read in this order, each overriding the one before,
+and a real environment variable wins over all of them:
+
+```
+.env   .env.local   .env.<LIKHO_ENV>   .env.<LIKHO_ENV>.local
+```
+
+`.env.development`, `.env.staging` and `.env.production` are committed and hold no secrets.
+`.env.<env>.local` holds the secrets of that environment on your machine; git ignores it, and
+`likho-infra/scripts/make-env-secrets.py` makes it. In Kubernetes the same values come from
+ConfigMaps and Secrets.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |

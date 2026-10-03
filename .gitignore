@@ -1,7 +1,6 @@
 __pycache__/
 *.pyc
 .venv/
-.env
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -11,3 +10,8 @@ dist/
 # Recordings and transcripts are data, never code. Nothing in these folders is committed.
 recordings/
 transcripts/
+
+# Personal and secret settings on this machine; never committed.
+.env
+.env.local
+.env.*.local

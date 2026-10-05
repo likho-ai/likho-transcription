@@ -112,6 +112,7 @@ was uploaded, transcribes it, and publishes:
 | --- | --- |
 | `likho.live.segment` | Each line, as soon as it is written, with both layers. For the live view. |
 | `likho.transcription.completed` | The transcript is stored. Carries its id, version, language and timings. |
+| `likho.transcription.started` | A worker took the job: said at once, before the model is loaded, so likho-api shows it running and its sweeper leaves it alone. |
 | `likho.transcription.failed` | The job cannot be done. Carries a code and a message in plain words. |
 | `likho.dead` | The request that failed, with the reason, kept for a person to look at. |
 

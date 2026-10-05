@@ -17,7 +17,8 @@ from tests.fakes import FakePipeline
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio(loop_scope="session")]
 
-SEGMENT, COMPLETED, FAILED, DEAD = (
+STARTED, SEGMENT, COMPLETED, FAILED, DEAD = (
+    "likho.transcription.started",
     "likho.live.segment",
     "likho.transcription.completed",
     "likho.transcription.failed",
@@ -56,6 +57,12 @@ async def test_health(fresh: Platform) -> None:
 async def test_a_job_from_the_bus_becomes_live_lines_and_a_stored_transcript(fresh: Platform) -> None:
     ids = await fresh.request()
     events = await fresh.events(ids["job_id"], until=COMPLETED)
+
+    # Said first, before any line: the job is in hand.
+    started = next(event for subject, event in events if subject == STARTED)
+    valid(started, "likho.transcription.started.v1.schema.json")
+    assert started["data"]["job_id"] == ids["job_id"] and started["data"]["attempt"] == 1
+    assert [subject for subject, _ in events].index(STARTED) < [subject for subject, _ in events].index(SEGMENT)
 
     segments = [event for subject, event in events if subject == SEGMENT]
     assert [e["data"]["segment"]["text_roman"] for e in segments] == HINGLISH

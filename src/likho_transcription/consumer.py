@@ -132,6 +132,8 @@ class JobConsumer:
         if self._metrics is not None:
             self._metrics.jobs_running.add(1)
         try:
+            # Said first, so likho-api knows the job is in hand while the model loads.
+            await self._bus.publish(events.STARTED_SUBJECT, events.started_event(job, attempt))
             document = await self._existing(job)
             if document is None:
 

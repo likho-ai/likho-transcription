@@ -9,6 +9,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import socket
 from datetime import UTC, datetime
 from typing import Any
 
@@ -22,6 +23,7 @@ log = logging.getLogger(__name__)
 
 SOURCE = "likho-transcription"
 REQUESTED_SUBJECT = "likho.transcription.requested"
+STARTED_SUBJECT = "likho.transcription.started"
 SEGMENT_SUBJECT = "likho.live.segment"
 COMPLETED_SUBJECT = "likho.transcription.completed"
 FAILED_SUBJECT = "likho.transcription.failed"
@@ -104,6 +106,22 @@ def corrected_event(correction: dict[str, Any], workspace_id: str) -> Event:
             "layer": correction["layer"],
             "before": correction["before"],
             "after": correction["after"],
+        },
+    )
+
+
+def started_event(job: JobRequest, attempt: int) -> Event:
+    """A worker took the job: said at once, before the model is loaded, so the job is known to be in hand."""
+    return _envelope(
+        f"evt_{job.job_id}_started_{attempt}",
+        "likho.transcription.started.v1",
+        job.recording_id,
+        {
+            "job_id": job.job_id,
+            "recording_id": job.recording_id,
+            "workspace_id": job.workspace_id,
+            "attempt": attempt,
+            "worker": socket.gethostname(),
         },
     )
 

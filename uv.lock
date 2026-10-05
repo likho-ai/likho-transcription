@@ -541,8 +541,8 @@ wheels = [
 
 [[package]]
 name = "likho-contracts"
-version = "0.7.0"
-source = { git = "https://github.com/likho-ai/likho-contracts?subdirectory=packages%2Fpython&tag=v0.7.0#cfe6aa63529fcd33e85c325bbe69c2ed0a685db4" }
+version = "0.8.0"
+source = { git = "https://github.com/likho-ai/likho-contracts?subdirectory=packages%2Fpython&tag=v0.8.0#12b40f582df01a738ef6ab6ff7e73d1ac078bbfe" }
 dependencies = [
     { name = "grpcio" },
     { name = "protobuf" },
@@ -555,7 +555,7 @@ source = { git = "https://github.com/likho-ai/likho-language?subdirectory=packag
 
 [[package]]
 name = "likho-transcription"
-version = "0.1.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "av" },
@@ -591,7 +591,7 @@ requires-dist = [
     { name = "grpcio", specifier = ">=1.70" },
     { name = "grpcio-health-checking", specifier = ">=1.70" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "likho-contracts", git = "https://github.com/likho-ai/likho-contracts?subdirectory=packages%2Fpython&tag=v0.7.0" },
+    { name = "likho-contracts", git = "https://github.com/likho-ai/likho-contracts?subdirectory=packages%2Fpython&tag=v0.8.0" },
     { name = "likho-hinglish", git = "https://github.com/likho-ai/likho-language?subdirectory=packages%2Flikho-hinglish&tag=v0.1.0" },
     { name = "nats-py", specifier = ">=2.9" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.30" },

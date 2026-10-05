@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://likho-ai.github.io/likho-contracts/events/likho.transcription.started.v1.schema.json",
+  "title": "A worker took the job",
+  "description": "data of likho.transcription.started.v1; published by likho-transcription on NATS subject likho.transcription.started as soon as a worker begins a job (before the model is loaded and the first line is heard), so the job is known to be in hand",
+  "type": "object",
+  "required": [
+    "job_id",
+    "recording_id",
+    "workspace_id",
+    "attempt"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "pattern": "^job_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "recording_id": {
+      "type": "string",
+      "pattern": "^rec_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^wsp_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How many times the queue has handed this job to a worker"
+    },
+    "worker": {
+      "type": "string",
+      "description": "The worker's name (host), for the logs"
+    }
+  }
+}

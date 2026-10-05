@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "likho-transcription"
-version = "0.2.0"
+version = "0.2.1"
 description = "Likho transcription: the speech engine (recordings in, Devanagari and Hinglish out) and the service around it"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -34,7 +34,7 @@ likho-transcribe = "likho_engine.cli:main"
 likho-transcription = "likho_transcription.__main__:main"
 
 [tool.uv.sources]
-likho-contracts = { git = "https://github.com/likho-ai/likho-contracts", tag = "v0.7.0", subdirectory = "packages/python" }
+likho-contracts = { git = "https://github.com/likho-ai/likho-contracts", tag = "v0.8.0", subdirectory = "packages/python" }
 likho-hinglish = { git = "https://github.com/likho-ai/likho-language", tag = "v0.1.0", subdirectory = "packages/likho-hinglish" }
 
 [dependency-groups]

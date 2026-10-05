@@ -36,6 +36,7 @@ from likho_transcription.store import TranscriptStore
 from tests.fakes import FakeModel, FakePipeline, write_silent_wav
 
 WATCHED = (
+    "likho.transcription.started",
     "likho.live.segment",
     "likho.transcription.completed",
     "likho.transcription.failed",

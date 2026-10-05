@@ -34,7 +34,7 @@ likho-transcribe = "likho_engine.cli:main"
 likho-transcription = "likho_transcription.__main__:main"
 
 [tool.uv.sources]
-likho-contracts = { git = "https://github.com/likho-ai/likho-contracts", tag = "v0.8.0", subdirectory = "packages/python" }
+likho-contracts = { git = "https://github.com/likho-ai/likho-contracts", tag = "v0.8.1", subdirectory = "packages/python" }
 likho-hinglish = { git = "https://github.com/likho-ai/likho-language", tag = "v0.1.0", subdirectory = "packages/likho-hinglish" }
 
 [dependency-groups]

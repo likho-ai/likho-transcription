@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "likho-transcription"
-version = "0.1.0"
+version = "0.2.0"
 description = "Likho transcription: the speech engine (recordings in, Devanagari and Hinglish out) and the service around it"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,6 +23,10 @@ dependencies = [
     "pymongo>=4.10",
     "httpx>=0.27",
     "pydantic-settings>=2.6",
+    "opentelemetry-sdk>=1.30",
+    "opentelemetry-exporter-prometheus>=0.51b0",
+    "opentelemetry-exporter-otlp-proto-http>=1.30",
+    "prometheus-client>=0.21",
 ]
 
 [project.scripts]

@@ -5,6 +5,7 @@ and streams.yaml for the subjects. Event ids are derived from the job, so publis
 same event again (a retry after a crash) is stored once.
 """
 
+import asyncio
 import contextlib
 import json
 import logging
@@ -129,12 +130,31 @@ class EventBus:
         self.nc: Any = None
         self.js: Any = None
 
-    async def connect(self) -> None:
-        self.nc = await nats.connect(self._url, name=SOURCE, max_reconnect_attempts=-1)
+    async def connect(self, timeout_seconds: float = 0.0) -> None:
+        """Connects, trying again while NATS is not there yet, for `timeout_seconds` (0 = one try)."""
+        deadline = asyncio.get_running_loop().time() + timeout_seconds
+        wait = 1.0
+        while True:
+            try:
+                await self._open()
+                return
+            except Exception as error:
+                if asyncio.get_running_loop().time() + wait > deadline:
+                    raise RuntimeError(f"the event bus at {self._url} did not answer in time: {error}") from error
+                log.warning("event bus not ready (%s); trying again in %.0f s", error, wait)
+                await asyncio.sleep(wait)
+                wait = min(wait * 2, 10.0)
+
+    async def _open(self) -> None:
+        self.nc = await nats.connect(
+            self._url, name=SOURCE, max_reconnect_attempts=-1, connect_timeout=5, allow_reconnect=True
+        )
         self.js = self.nc.jetstream()
         try:
             await self.js.stream_info(JOB_STREAM)
         except NotFoundError as error:
+            await self.nc.close()
+            self.nc = None
             raise RuntimeError(
                 f"stream {JOB_STREAM} does not exist on {self._url}; "
                 "create the streams first (likho-infra: scripts/up.sh)"

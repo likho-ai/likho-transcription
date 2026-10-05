@@ -54,3 +54,9 @@ class Settings(BaseSettings):
     # After this many attempts the job is marked failed.
     job_max_deliver: int = 3
     job_retry_delay_seconds: float = 30.0
+    # How long the start keeps trying to reach NATS before giving up.
+    nats_connect_timeout_seconds: float = 120.0
+
+    # --- metrics ----------------------------------------------------------------
+    # Always at GET /metrics (Prometheus text); set this to also push them (OTLP/HTTP, e.g. http://localhost:4318).
+    otel_exporter_otlp_endpoint: str = ""

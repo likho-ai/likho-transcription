@@ -200,6 +200,8 @@ ConfigMaps and Secrets.
 | `MONGO_URL` | `mongodb://localhost:27017` | Transcript store |
 | `MONGO_DATABASE` | `likho_transcription` | |
 | `NATS_URL` | `nats://localhost:4222` | Event bus |
+| `NATS_CONNECT_TIMEOUT_SECONDS` | `120` | How long the start keeps trying to reach NATS before giving up |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | Also push the metrics there (OTLP/HTTP); `GET /metrics` (jobs finished by outcome, the realtime factor, how long jobs took, lines published, jobs running) is always on |
 | `LANGUAGE_GRPC_ADDR` | `localhost:5030` | likho-language |
 | `MEDIA_GRPC_ADDR` | `localhost:5010` | likho-media |
 | `DEFAULT_MODEL` | `turbo` | `turbo`, `large-v3`, `medium`, `small`, `base` |

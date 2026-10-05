@@ -19,6 +19,7 @@ from likho_engine import Decision, Detection, Segment
 from likho_transcription import events
 from likho_transcription.errors import JobCancelled, JobError
 from likho_transcription.events import EventBus
+from likho_transcription.metrics import Metrics
 from likho_transcription.runner import JobRequest, JobRunner
 from likho_transcription.settings import Settings
 from likho_transcription.store import TranscriptStore
@@ -47,11 +48,19 @@ def parse_request(raw: bytes) -> JobRequest:
 
 
 class JobConsumer:
-    def __init__(self, settings: Settings, bus: EventBus, runner: JobRunner, store: TranscriptStore) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        bus: EventBus,
+        runner: JobRunner,
+        store: TranscriptStore,
+        metrics: Metrics | None = None,
+    ) -> None:
         self._settings = settings
         self._bus = bus
         self._runner = runner
         self._store = store
+        self._metrics = metrics
         self._subscription: Any = None
 
     async def start(self) -> None:
@@ -108,8 +117,20 @@ class JobConsumer:
             with contextlib.suppress(Exception):
                 await message.in_progress()
 
+    def _count(self, outcome: str, document: dict[str, Any] | None = None) -> None:
+        if self._metrics is None:
+            return
+        self._metrics.jobs_finished.add(1, {"outcome": outcome})
+        stats = (document or {}).get("stats") or {}
+        if stats.get("elapsed_seconds"):
+            self._metrics.job_seconds.record(float(stats["elapsed_seconds"]))
+        if stats.get("realtime_factor"):
+            self._metrics.realtime_factor.record(float(stats["realtime_factor"]))
+
     async def _handle(self, job: JobRequest, message: Any, attempt: int) -> None:
         log.info("job %s for recording %s, attempt %d", job.job_id, job.recording_id, attempt)
+        if self._metrics is not None:
+            self._metrics.jobs_running.add(1)
         try:
             document = await self._existing(job)
             if document is None:
@@ -128,25 +149,38 @@ class JobConsumer:
                     await self._bus.publish(
                         events.SEGMENT_SUBJECT, events.segment_event(job, segment, total_seconds, attempt)
                     )
+                    if self._metrics is not None:
+                        self._metrics.segments.add(1)
 
                 document = await self._runner.run(job, on_started, on_segment)
+                self._count("done", document)
+            else:
+                self._count("reused")
             await self._bus.publish(events.COMPLETED_SUBJECT, events.completed_event(job, document))
             await message.ack()
             log.info("job %s done: transcript %s version %d", job.job_id, document["_id"], document["version"])
         except JobCancelled:
+            self._count("cancelled")
             await self._fail(job, message, "cancelled", "The job was cancelled", attempt, dead=False)
         except JobError as error:
             if error.retryable and attempt < self._settings.job_max_deliver:
                 log.warning("job %s attempt %d failed, will retry: %s", job.job_id, attempt, error.message)
+                self._count("retry")
                 await message.nak(delay=self._settings.job_retry_delay_seconds)
             else:
+                self._count("failed")
                 await self._fail(job, message, error.code, error.message, attempt, dead=True)
         except Exception as error:
             log.exception("job %s attempt %d failed unexpectedly", job.job_id, attempt)
             if attempt < self._settings.job_max_deliver:
+                self._count("retry")
                 await message.nak(delay=self._settings.job_retry_delay_seconds)
             else:
+                self._count("failed")
                 await self._fail(job, message, "internal", f"Transcription failed: {error}", attempt, dead=True)
+        finally:
+            if self._metrics is not None:
+                self._metrics.jobs_running.add(-1)
 
     async def _existing(self, job: JobRequest) -> dict[str, Any] | None:
         """The transcript to report without transcribing again, if there is one.

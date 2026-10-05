@@ -18,6 +18,7 @@ from likho_transcription.events import EventBus
 from likho_transcription.gateways import LanguageGateway, MediaGateway
 from likho_transcription.grpc_server import TranscriptionServicer
 from likho_transcription.health import start_health_server
+from likho_transcription.metrics import shared
 from likho_transcription.runner import EngineFactory, EngineProvider, JobRunner
 from likho_transcription.settings import Settings
 from likho_transcription.store import TranscriptStore
@@ -56,10 +57,11 @@ async def serve(
     """Run until `stop` is set. `engine_factory` lets tests supply an engine with a stand-in model."""
     stop = stop or asyncio.Event()
 
+    metrics = shared(__version__, settings.otel_exporter_otlp_endpoint)
     store = TranscriptStore(settings.mongo_url, settings.mongo_database)
     await store.prepare()
     bus = EventBus(settings.nats_url)
-    await bus.connect()
+    await bus.connect(settings.nats_connect_timeout_seconds)
 
     language = LanguageGateway(settings.language_grpc_addr, settings.rpc_timeout_seconds)
     media = MediaGateway(settings.media_grpc_addr, settings.rpc_timeout_seconds, settings.download_timeout_seconds)
@@ -80,11 +82,11 @@ async def serve(
     async def ready() -> bool:
         return bus.connected and await store.ping()
 
-    http = await start_health_server(settings.http_port, ready)
+    http = await start_health_server(settings.http_port, ready, metrics.scrape)
 
     working: asyncio.Task[None] | None = None
     if settings.worker_enabled:
-        consumer = JobConsumer(settings, bus, runner, store)
+        consumer = JobConsumer(settings, bus, runner, store, metrics)
         await consumer.start()
         working = asyncio.create_task(consumer.run(stop))
 
@@ -108,6 +110,7 @@ async def serve(
     await media.close()
     await bus.close()
     await store.close()
+    await asyncio.to_thread(metrics.flush)
 
 
 async def _run() -> None:

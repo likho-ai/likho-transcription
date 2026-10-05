@@ -50,6 +50,7 @@ async def test_health(fresh: Platform) -> None:
     assert reply.status == health_pb2.HealthCheckResponse.SERVING
     assert await _http_status(fresh.settings.http_port, "/healthz") == 200
     assert await _http_status(fresh.settings.http_port, "/readyz") == 200
+    assert await _http_status(fresh.settings.http_port, "/metrics") == 200
 
 
 async def test_a_job_from_the_bus_becomes_live_lines_and_a_stored_transcript(fresh: Platform) -> None:

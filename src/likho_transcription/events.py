@@ -55,6 +55,7 @@ def segment_event(job: JobRequest, segment: Segment, total_seconds: float, attem
         {
             "job_id": job.job_id,
             "recording_id": job.recording_id,
+            "workspace_id": job.workspace_id,  # likho-language counts the line against this vocabulary
             "total_seconds": total_seconds,
             "segment": {
                 "index": segment.index,

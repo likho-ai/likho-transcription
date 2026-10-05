@@ -20,6 +20,11 @@
       "type": "string",
       "pattern": "^rec_[0-9A-HJKMNP-TV-Z]{26}$"
     },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^wsp_[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "The recording's workspace, so a consumer can count the line against its vocabulary (added in contracts 0.9; older workers leave it out)"
+    },
     "total_seconds": {
       "type": "number",
       "minimum": 0,

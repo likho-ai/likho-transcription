@@ -70,6 +70,7 @@ async def test_a_job_from_the_bus_becomes_live_lines_and_a_stored_transcript(fre
     assert [e["data"]["segment"]["text_script"] for e in segments] == SCRIPT
     assert [e["data"]["segment"]["index"] for e in segments] == [0, 1]
     assert all(e["data"]["total_seconds"] == 10.0 for e in segments)
+    assert all(e["data"]["workspace_id"] == ids["workspace_id"] for e in segments)  # likho-language counts by it
     for event in segments:
         valid(event, "likho.transcription.segment.v1.schema.json")
         assert fresh.headers(event["id"])["Nats-Msg-Id"] == event["id"]  # type: ignore[index]

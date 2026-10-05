@@ -145,7 +145,7 @@ What you can rely on:
 | `Transcribe` | Transcribes now and streams what happens: started, each line, the stored transcript. Closing the stream stops the work. |
 | `Retransliterate` | Stores a new version whose Hinglish is rebuilt from the saved script layer. The speech model does not run. |
 | `ListEngines` | The models this worker can load. |
-| `CancelJob` | Stops a running job after its current line. |
+| `CancelJob` | Stops a running job after its current line. A job not running here is remembered: should its request arrive later (a stalled job's request, delivered once more), it is dropped instead of run. |
 
 ### Storage
 

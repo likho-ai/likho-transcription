@@ -12,6 +12,7 @@ from grpc_health.v1 import health_pb2, health_pb2_grpc
 from likho.common.v1 import common_pb2
 from likho.transcription.v1 import transcription_pb2 as pb
 
+from likho_transcription.ids import new_id
 from tests.conftest import Platform, contract
 from tests.fakes import FakePipeline
 
@@ -170,6 +171,22 @@ async def test_a_running_job_can_be_cancelled(fresh: Platform) -> None:
     assert not any(subject == DEAD for subject, _ in events)  # a cancelled job is not an error to investigate
     assert await fresh.store.find_by_job(ids["job_id"]) is None
     assert (await fresh.stub.CancelJob(pb.CancelJobRequest(job_id=ids["job_id"]))).cancelled is False
+
+
+async def test_a_job_cancelled_before_the_worker_has_it_is_dropped(fresh: Platform) -> None:
+    # likho-api gives up on a job (it stalled on a worker that died, or a person cancelled it while
+    # it waited) and asks this worker to stop it before its request gets here: when the request
+    # comes, delivered once more, it is dropped instead of transcribed.
+    job_id = new_id("job")
+    assert (await fresh.stub.CancelJob(pb.CancelJobRequest(job_id=job_id))).cancelled is False
+    await fresh.request(job_id=job_id)
+
+    events = await fresh.events(job_id, until=FAILED)
+    failed = next(event for subject, event in events if subject == FAILED)
+    assert failed["data"]["code"] == "cancelled"
+    assert not any(subject in (SEGMENT, COMPLETED, DEAD) for subject, _ in events)
+    assert fresh.pipeline.current.calls == []  # the model did not run
+    assert await fresh.store.find_by_job(job_id) is None
 
 
 async def test_without_the_language_service_the_built_in_rules_are_used(fresh: Platform) -> None:

@@ -4,6 +4,7 @@ import asyncio
 import logging
 import tempfile
 import threading
+from collections import deque
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -139,11 +140,18 @@ class JobRunner:
         self._engines = engines
         self._lock = asyncio.Lock()  # one transcription at a time: the model keeps the CPU busy
         self._running: dict[str, threading.Event] = {}
+        # Jobs cancelled before they were in hand: a job given up on by likho-api whose request
+        # reaches this worker later (or a moment after it said "started") is not run at all.
+        self._cancelled: deque[str] = deque(maxlen=1000)
 
     def cancel(self, job_id: str) -> bool:
-        """Ask a running job to stop after its current line. False when the job is not running here."""
+        """Ask a running job to stop after its current line. False when the job is not running here.
+
+        A job not running here is remembered: should its request arrive later, it is dropped.
+        """
         stop = self._running.get(job_id)
         if stop is None:
+            self._cancelled.append(job_id)
             return False
         stop.set()
         return True
@@ -153,7 +161,9 @@ class JobRunner:
     ) -> Document:
         """Transcribe and store. Raises JobError or JobCancelled."""
         stop = threading.Event()
-        self._running[job.job_id] = stop
+        self._running[job.job_id] = stop  # in hand first, so a cancel from now on is not missed
+        if job.job_id in self._cancelled:
+            stop.set()
         try:
             async with self._lock:
                 return await self._run(job, stop, on_started, on_segment)
@@ -163,9 +173,13 @@ class JobRunner:
     async def _run(
         self, job: JobRequest, stop: threading.Event, on_started: OnStarted | None, on_segment: OnSegment | None
     ) -> Document:
-        if stop.is_set():
-            raise JobCancelled
+        def cancelled() -> None:
+            if stop.is_set():
+                raise JobCancelled
+
+        cancelled()
         engine, registry_id = await self._engines.get(job.model_registry_id)
+        cancelled()  # a cancel that came while the model loaded
 
         with tempfile.TemporaryDirectory(prefix="likho-") as folder:
             path = await self._media.download(job.media_id, Path(folder))
@@ -175,6 +189,7 @@ class JobRunner:
                 raise JobError("audio_unreadable", "The audio file could not be read", retryable=False) from error
         if len(audio) == 0:
             raise JobError("audio_unreadable", "The recording is empty", retryable=False)
+        cancelled()  # ... or while the audio was fetched; decoding asks again before every line
 
         loop = asyncio.get_running_loop()
         language = _BlockingLanguage(self._language, job.workspace_id, loop, self._settings.rpc_timeout_seconds + 5)

@@ -208,6 +208,7 @@ async def platform(tmp_path_factory: pytest.TempPathFactory) -> AsyncIterator[Pl
         job_max_deliver=2,
         job_retry_delay_seconds=0.2,
         job_heartbeat_seconds=0.5,
+        ml_grpc_addr="",  # the settings' default model; test_defaults.py covers the registry
         log_level="WARNING",
     )
     mongo_host, mongo_port = settings.mongo_url.split("//", 1)[1].split("/")[0].split(":")

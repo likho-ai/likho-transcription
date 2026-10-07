@@ -7,14 +7,17 @@ import threading
 from collections import deque
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from likho_engine import Decision, Detection, Engine, EngineSettings, Segment, StopRequested, Transcript, transcribe
 from likho_engine.audio import load_audio
 from likho_engine.config import MODEL_CHOICES
+from likho_transcription.defaults import RegistryDefault
 from likho_transcription.errors import JobCancelled, JobError
 from likho_transcription.gateways import LanguageGateway, MediaGateway
+from likho_transcription.ids import new_id
 from likho_transcription.settings import Settings
 from likho_transcription.store import Document, TranscriptStore
 
@@ -38,14 +41,19 @@ class JobRequest:
     model_registry_id: str = ""
     language_policy: str = "auto"
     force: bool = False
+    # An evaluation (likho-ml): the transcript is made and returned but not stored.
+    evaluation: bool = False
 
 
 class EngineProvider:
     """Keeps one speech model in memory and swaps it when a job asks for another."""
 
-    def __init__(self, settings: Settings, factory: EngineFactory | None = None) -> None:
+    def __init__(
+        self, settings: Settings, factory: EngineFactory | None = None, defaults: "RegistryDefault | None" = None
+    ) -> None:
         self._settings = settings
         self._factory = factory or self._load
+        self._defaults = defaults
         self._engine: Engine | None = None
         self._size = ""
         self._lock = asyncio.Lock()
@@ -62,7 +70,21 @@ class EngineProvider:
 
     @property
     def default_registry_id(self) -> str:
+        """This worker's own default (DEFAULT_MODEL); the registry's may differ (current_default)."""
         return f"{ENGINE_NAME}/{self._settings.default_model}"
+
+    async def current_default(self) -> str:
+        """The model a job that names none gets: the registry's default when it can be loaded here."""
+        if self._defaults is None:
+            return self.default_registry_id
+        return await self._defaults.registry_id()
+
+    def can_load(self, registry_id: str) -> bool:
+        try:
+            self.size_of(registry_id)
+        except JobError:
+            return False
+        return True
 
     def size_of(self, registry_id: str) -> str:
         """The model size a registry id names: "" is the default, "faster-whisper/turbo" is "turbo"."""
@@ -78,7 +100,7 @@ class EngineProvider:
         return [f"{ENGINE_NAME}/{size}" for size in sizes]
 
     async def get(self, registry_id: str) -> tuple[Engine, str]:
-        size = self.size_of(registry_id)
+        size = self.size_of(registry_id or await self.current_default())
         async with self._lock:
             if self._engine is None or self._size != size:
                 self._engine = None  # free the old model before loading the next one
@@ -159,7 +181,7 @@ class JobRunner:
     async def run(
         self, job: JobRequest, on_started: OnStarted | None = None, on_segment: OnSegment | None = None
     ) -> Document:
-        """Transcribe and store. Raises JobError or JobCancelled."""
+        """Transcribe and store (an evaluation is not stored). Raises JobError or JobCancelled."""
         stop = threading.Event()
         self._running[job.job_id] = stop  # in hand first, so a cancel from now on is not missed
         if job.job_id in self._cancelled:
@@ -236,7 +258,11 @@ class JobRunner:
             queue.put_nowait(("end", None))
             await pumping
 
-        return await self._store.insert(self._document(job, engine, registry_id, transcript, language))
+        document = self._document(job, engine, registry_id, transcript, language)
+        if job.evaluation:
+            # Scored against the gold set and thrown away: the recording's versions stay as they are.
+            return {**document, "_id": new_id("trn"), "created_at": datetime.now(UTC), "version": 0}
+        return await self._store.insert(document)
 
     @staticmethod
     def _document(

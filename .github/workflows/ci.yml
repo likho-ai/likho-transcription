@@ -18,3 +18,15 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+  # The GPU image: the same tags with -cuda (latest-cuda, sha-<commit>-cuda).
+  publish-cuda:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    uses: likho-ai/likho-infra/.github/workflows/docker-publish.yml@main
+    with:
+      file: Dockerfile.cuda
+      suffix: -cuda
+    permissions:
+      contents: read
+      packages: write

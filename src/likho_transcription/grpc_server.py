@@ -144,6 +144,7 @@ class TranscriptionServicer(transcription_pb2_grpc.TranscriptionServiceServicer)
             model_registry_id=request.model_registry_id,
             language_policy=request.language_policy or "auto",
             force=True,
+            evaluation=request.evaluation,
         )
         replies: asyncio.Queue[pb.TranscribeResponse | BaseException | None] = asyncio.Queue()
 

@@ -287,7 +287,7 @@ class TranscriptionServicer(transcription_pb2_grpc.TranscriptionServiceServicer)
     async def ListEngines(
         self, request: pb.ListEnginesRequest, context: grpc.aio.ServicerContext
     ) -> pb.ListEnginesResponse:
-        default = self._engines.default_registry_id
+        default = await self._engines.current_default()
         return pb.ListEnginesResponse(
             engines=[
                 pb.Engine(

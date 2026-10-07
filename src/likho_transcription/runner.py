@@ -14,6 +14,7 @@ from typing import Any
 from likho_engine import Decision, Detection, Engine, EngineSettings, Segment, StopRequested, Transcript, transcribe
 from likho_engine.audio import load_audio
 from likho_engine.config import MODEL_CHOICES
+from likho_transcription.defaults import RegistryDefault
 from likho_transcription.errors import JobCancelled, JobError
 from likho_transcription.gateways import LanguageGateway, MediaGateway
 from likho_transcription.ids import new_id
@@ -47,9 +48,12 @@ class JobRequest:
 class EngineProvider:
     """Keeps one speech model in memory and swaps it when a job asks for another."""
 
-    def __init__(self, settings: Settings, factory: EngineFactory | None = None) -> None:
+    def __init__(
+        self, settings: Settings, factory: EngineFactory | None = None, defaults: "RegistryDefault | None" = None
+    ) -> None:
         self._settings = settings
         self._factory = factory or self._load
+        self._defaults = defaults
         self._engine: Engine | None = None
         self._size = ""
         self._lock = asyncio.Lock()
@@ -66,7 +70,21 @@ class EngineProvider:
 
     @property
     def default_registry_id(self) -> str:
+        """This worker's own default (DEFAULT_MODEL); the registry's may differ (current_default)."""
         return f"{ENGINE_NAME}/{self._settings.default_model}"
+
+    async def current_default(self) -> str:
+        """The model a job that names none gets: the registry's default when it can be loaded here."""
+        if self._defaults is None:
+            return self.default_registry_id
+        return await self._defaults.registry_id()
+
+    def can_load(self, registry_id: str) -> bool:
+        try:
+            self.size_of(registry_id)
+        except JobError:
+            return False
+        return True
 
     def size_of(self, registry_id: str) -> str:
         """The model size a registry id names: "" is the default, "faster-whisper/turbo" is "turbo"."""
@@ -82,7 +100,7 @@ class EngineProvider:
         return [f"{ENGINE_NAME}/{size}" for size in sizes]
 
     async def get(self, registry_id: str) -> tuple[Engine, str]:
-        size = self.size_of(registry_id)
+        size = self.size_of(registry_id or await self.current_default())
         async with self._lock:
             if self._engine is None or self._size != size:
                 self._engine = None  # free the old model before loading the next one

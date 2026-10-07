@@ -38,6 +38,13 @@ class Settings(BaseSettings):
 
     # --- speech model ---------------------------------------------------------
     default_model: str = "turbo"
+    # likho-ml, whose registry names the default model (an admin chooses it). Empty: always
+    # default_model. When likho-ml cannot answer, or names a model this worker cannot load,
+    # default_model is used, so transcription never stops on the registry.
+    ml_grpc_addr: str = ""
+    # How long the registry's answer is used before asking again (a likho.model.chosen event
+    # ends it at once).
+    ml_default_ttl_seconds: float = 60.0
     device: str = "auto"
     compute_type: str = "auto"
     cpu_threads: int = 0

@@ -14,6 +14,7 @@ from likho.transcription.v1 import transcription_pb2, transcription_pb2_grpc
 
 from likho_transcription import __version__
 from likho_transcription.consumer import JobConsumer
+from likho_transcription.defaults import RegistryDefault
 from likho_transcription.events import EventBus
 from likho_transcription.gateways import LanguageGateway, MediaGateway
 from likho_transcription.grpc_server import TranscriptionServicer
@@ -65,8 +66,22 @@ async def serve(
 
     language = LanguageGateway(settings.language_grpc_addr, settings.rpc_timeout_seconds)
     media = MediaGateway(settings.media_grpc_addr, settings.rpc_timeout_seconds, settings.download_timeout_seconds)
-    engines = EngineProvider(settings, engine_factory)
+    # The default model is the registry's (likho-ml), when it answers and the model can be loaded here.
+    defaults = RegistryDefault(
+        settings.ml_grpc_addr,
+        fallback=f"faster-whisper/{settings.default_model}",
+        loadable=lambda registry_id: engines.can_load(registry_id),
+        ttl_seconds=settings.ml_default_ttl_seconds,
+    )
+    engines = EngineProvider(settings, engine_factory, defaults)
     runner = JobRunner(settings, store, language, media, engines)
+    if bus.connected:
+
+        async def chosen(_message: object) -> None:
+            defaults.forget()
+
+        # A plain subscription: every worker hears it (no shared consumer), nothing to acknowledge.
+        await bus.nc.subscribe("likho.model.chosen", cb=chosen)
 
     server = grpc.aio.server()
     transcription_pb2_grpc.add_TranscriptionServiceServicer_to_server(
@@ -108,6 +123,7 @@ async def serve(
     await http.wait_closed()
     await language.close()
     await media.close()
+    await defaults.close()
     await bus.close()
     await store.close()
     await asyncio.to_thread(metrics.flush)

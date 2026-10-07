@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "098bdb7f537f599b708cff05b16bdaaa061b91de",
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": false,
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "likho-transcription",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}

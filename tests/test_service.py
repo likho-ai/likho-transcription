@@ -315,6 +315,21 @@ async def test_transcribe_streams_started_lines_and_the_result(fresh: Platform) 
     await fresh.store.delete_recording("rec_direct")
 
 
+async def test_an_evaluation_is_returned_but_not_kept(fresh: Platform) -> None:
+    request = pb.TranscribeRequest(
+        recording_id="rec_gold", media_id="med_good", workspace_id="wsp_1", model_registry_id="", evaluation=True
+    )
+    replies = [reply async for reply in fresh.stub.Transcribe(request)]
+
+    completed = replies[-1].completed
+    assert completed.id.startswith("trn_") and completed.version == 0
+    assert [segment.text_roman for segment in completed.segments] == HINGLISH
+    assert await fresh.store.latest_for_recording("rec_gold") is None, "the recording's versions do not change"
+    with pytest.raises(grpc.aio.AioRpcError) as gone:
+        await fresh.stub.GetTranscript(pb.GetTranscriptRequest(id=completed.id))
+    assert gone.value.code() == grpc.StatusCode.NOT_FOUND
+
+
 @pytest.mark.parametrize(
     ("call", "code"),
     [
